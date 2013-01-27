@@ -242,6 +242,33 @@ def populate_data():
 
 	pass
 
+def find_best_score(l):
+	# Takes a list containing lists composed as follows:
+	#	[score, text, (... possible further information)]
+	# and returns a list with only those items that have the highest score
+	# of all items. If there's only one highest score, result is a list 
+	# of one item; otherwise, all the highest-score items are in the list.
+
+	best_score = 0
+	best_scores_data = []
+	for entry in l:
+		if entry[0] > best_score:
+			# if better than current best score, make it the best score
+			best_score = entry[0]
+			best_scores_data = [entry]
+		elif best_score > 0 and entry[0] == best_score \
+			and not entry[1] == best_scores_data[-1][1]:
+			# if tied for best score, add for later deciding
+			# except if it's the same result, then no point noting it again
+
+			# TODO: technically we can still get duplicate results
+			# if there are other results in between them 
+			# (because we only check index -1, the last item).
+			# If this becomes a problem, look more thoroughly.
+			best_scores_data = best_scores_data + [entry]
+	
+	return best_scores_data
+
 def transliterate(text, from_lang = False, to_lang = False):
 	# from_lang and to_lang are not currently used. TODO: add interpreting
 	# hints about source and/or destination language to aid decision-making
@@ -251,11 +278,14 @@ def transliterate(text, from_lang = False, to_lang = False):
 	# longest possible substrings first, leaving the final alone to be 
 	# matched later. But there may be some edgier cases, in which case,
 	# I'll have to add a way to indicate something is a final-only symbol
-	# and then do some sort of special handling (smart syllabing? might 
-	# get complicated).
+	# and then do some sort of special handling.
 	# As I understand it, 'final only' can also occur at end of syllable.
+	# So smart syllabing? Might get complicated.
 
+	# `results` keeps more information, `scores` holds it in a format 
+	# more convenient for scoring and sorting
 	results = {}
+	scores = []
 
 	# For each language/substitution set, blindly try transliterating
 	# input text both into and out of latin. Compute scores by evaluating
@@ -275,44 +305,56 @@ def transliterate(text, from_lang = False, to_lang = False):
 		for latin,non_latin in LANGS[lang]['FROM_LIST']:
 			from_latin = from_latin.replace(latin, non_latin)
 
-		scores = {
-			'into': [levenshtein(into_latin, text), into_latin],
-			'from': [levenshtein(from_latin, text), from_latin]
+		lang_scores = {
+			'into': [levenshtein(into_latin, text), into_latin, lang],
+			'from': [levenshtein(from_latin, text), from_latin, lang]
 			}
 
-		results[lang] = scores
+		results[lang] = lang_scores
+		scores = scores + lang_scores.values()
 
 	# Next, to find the 'correct' transliteration in the results table,
 	# simply find best-scoring results (ones with largest Lev.dist. from 
-	# input string) and assume they're the correct one. This mostly works,
-	# though I could probably use a less-naive algorithm.
+	# input string) and assume they're the correct one. This mostly works.
 
-	# TODO: Some ideas to do it better:
+	# For situations where answers are tied on Lev.distance, count matching
+	# language keys in the source string. E.g. 'ch' might count for Russian
+	# and 'qa' for Inuktitut. Scores are weighted by length, as a match for
+	# 'shch' or 'kuu' is much more indicative than a match for 'a'.
+	# Not foolproof, but again, mostly works, particularly for two 
+	# very different scripts, as I have currently.
+
+	# TODO: look into using this secondary algorithm in connection with or
+	# or instead of the first one, since it seems a little more learned.
+
+	# TODO: Some more ideas to do it better:
 	# - Use a ready-made language detector, particularly for inconclusive 
 	#   FROM-latin cases. Ones I've seen work by recognizing known words
 	#   in some database of languages' words, which might not work as well
 	#   for single words.
-	# - Basic detector for INTO-latin: see how many characters from the 
-	#   string are in each language's INTO_LATIN collection. Language with
-	#   highest amount matching wins
-	# - Similarly for FROM-latin: count matching multi-character keys,
-	#   e.g. 'qa' might count for Inuktitut and 'ch' for Russian.
-	#   Not foolproof, but might work for two very different scripts,
-	#   as I have currently.
 
-	best_score = 0
-	best_scores_data = []
-	for lang in results:
-		for kind in results[lang]:
-			if results[lang][kind][0] > best_score:
-				# if better than current best score, make it the best score
-				best_score = results[lang][kind][0]
-				best_scores_data = [results[lang][kind] + [lang]]
-			elif best_score > 0 and results[lang][kind][0] == best_score \
-				and not results[lang][kind][1] == best_scores_data[-1][1]:
-				# if tied for best score, add for later deciding
-				# except if it's the same result, then no point noting it again
-				best_scores_data = best_scores_data + [results[lang][kind] + [lang]]
+	best_scores_data = find_best_score(scores)
+
+	if not len(best_scores_data) == 1:
+		# if there's a tie, rescore with a second attempt
+		# (described above)
+
+		new_scores = []
+
+		for best_score in best_scores_data:
+			score = 0
+
+			# look through both FROM and INTO collections for more
+			# universality since CPU cycles are cheap...
+
+			for clump in LANGS[best_score[2]]['FROM_LATIN']:
+				score = score + text.count(clump)*len(clump)
+			for clump in LANGS[best_score[2]]['INTO_LATIN']:
+				score = score + text.count(clump)*len(clump)
+
+			new_scores.append([score] + best_score[1:])
+
+		best_scores_data = find_best_score(new_scores)
 
 	# return either the best-scoring result or a message about a tie
 	if not len(best_scores_data) == 1:
