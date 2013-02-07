@@ -2,12 +2,7 @@
 # coding=utf-8
 
 from __future__ import unicode_literals
-import cgi
-import os
 import sys
-import simplejson as json
-import time
-from datetime import datetime
 
 # from http://hetland.org/coding/python/levenshtein.py
 def levenshtein(a,b):
@@ -229,16 +224,16 @@ def populate_data():
 		# which one was provided
 		if len(LANGS[lang]['INTO_LATIN']) == 0:
 			LANGS[lang]['INTO_LATIN'].update(dict((v,k) for k,v 
-				in LANGS[lang]['FROM_LATIN'].iteritems()))
+				in LANGS[lang]['FROM_LATIN'].items()))
 		elif len(LANGS[lang]['FROM_LATIN']) == 0:
 			LANGS[lang]['FROM_LATIN'].update(dict((v,k) for k,v 
-				in LANGS[lang]['INTO_LATIN'].iteritems()))
+				in LANGS[lang]['INTO_LATIN'].items()))
 
 		# convert into a list to preserve a defined replace order
 		LANGS[lang]['FROM_LIST'] = process_list(list((k,v) for k,v
-				in LANGS[lang]['FROM_LATIN'].iteritems()))
+				in LANGS[lang]['FROM_LATIN'].items()))
 		LANGS[lang]['INTO_LIST'] = process_list(list((k,v) for k,v
-				in LANGS[lang]['INTO_LATIN'].iteritems()))
+				in LANGS[lang]['INTO_LATIN'].items()))
 
 	pass
 
@@ -366,20 +361,11 @@ def transliterate(text, from_lang = False, to_lang = False):
 	else:
 		return best_scores_data[0][1]
 
+#__init__
+# except this isn't a class...
+populate_data()
 
 if __name__ == '__main__':
-	populate_data()
-
-	# TODO: move these into a proper unit test, since that's what 
-	# they are anyway
-
-	print 'ᓄᓇᕗᑦ: ' + transliterate('ᓄᓇᕗᑦ')		# iqaluit
-	print 'ᑰᔾᔪᐊᖅ: ' + transliterate('ᑰᔾᔪᐊᖅ')	# kuujjuaq
-	print 'ᐃᖃᓗᐃᑦ: ' + transliterate('ᐃᖃᓗᐃᑦ')	# nunavut
-	print 'Nunavut: ' + transliterate('Nunavut')
-	print 'Yaroslav: ' + transliterate('Yaroslav')
-	print 'Moskva: ' + transliterate('Moskva')
-	print 'Iqaluit: ' + transliterate('Iqaluit')
-	print 'Kuujjuaq: ' + transliterate('Kuujjuaq')
-	print 'Владивосток: ' + transliterate('Владивосток')
-	print 'Vladivostok: ' + transliterate('Vladivostok')
+	if len(sys.argv) > 1:
+		source = u' '.join(arg.decode('utf-8') for arg in sys.argv[1:])
+		print '%s: %s' % (source, transliterate(source))
