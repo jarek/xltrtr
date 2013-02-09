@@ -20,11 +20,8 @@ class known_values(unittest.TestCase):
 		('Nunavut', 'ᓄᓇᕗᑦ'),
 		('Kuujjuaq', 'ᑰᔾᔪᐊᖅ'),
 	
-		# TODO: these are broken. I need to prioritize Russian-style
-		# into-Latin over Polish-style, preferably while keeping
-		# Polish-style working for from-Latin
-		#('Ярослав', 'Yaroslav'),
-		#('Владивосток', 'Vladivostok'),
+		('Ярослав', 'Yaroslav'),
+		('Владивосток', 'Vladivostok'),
 
 		('Moskva', 'Москва'),
 		('Vladivostok', 'Владивосток'),
@@ -44,19 +41,20 @@ class known_values(unittest.TestCase):
 		'nunavut',
 		'kuujjuaq',
 	
-		# TODO: tests have been neutered due to same problem as above
-		#'Vladivostok',
+		'Vladivostok',
+		# currently script only works from Russian,
+		# not Polish-flavoured Cyrillic
 		#'Władiwostok',
-		#'Yaroslav',
-		#'Moskva',
-		#'moskva',
+		'Yaroslav',
+		'Moskva',
+		'moskva',
 		)		
 	
 	def test_basic_case(self):
 		"""transliterate() should give known result with known input"""
 
 		for source, to in self.basic_values:
-			print '%s = %s' % (source, to)
+			#print '%s = %s' % (source, to)
 			result = xltrtr.transliterate(source)
 			self.assertEqual(to, result)
 	
@@ -67,7 +65,7 @@ class known_values(unittest.TestCase):
 			intermediate = xltrtr.transliterate(source)
 			result = xltrtr.transliterate(intermediate)
 
-			print '%s = %s = %s' % (source, intermediate, result)
+			#print '%s = %s = %s' % (source, intermediate, result)
 			self.assertEqual(source, result)
 
 if __name__ == '__main__':
