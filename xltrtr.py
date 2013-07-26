@@ -2,6 +2,9 @@
 # coding=utf-8
 
 from __future__ import unicode_literals
+import cgi
+import os
+import simplejson as json
 import sys
 
 # from http://hetland.org/coding/python/levenshtein.py
@@ -400,6 +403,27 @@ def transliterate(text, from_lang = False, to_lang = False):
 populate_data()
 
 if __name__ == '__main__':
-	if len(sys.argv) > 1:
+    # check if we're running as CGI
+    # this uses RFC3875 section 4.1.4
+    if 'GATEWAY_INTERFACE' in os.environ:
+        # cgi.FieldStorage() *really* doesn't like being called before
+        # something is printed, at least in python 2.6.6 on my webhost.
+        # So print the Content-Type header.
+        print 'Content-Type: application/json\n'
+        args = cgi.FieldStorage()
+
+    # if we aren't CGI, assume command-line behaviour
+    else:
+        args = []
+
+    if 'query' in args:
+        # print basic JSON output
+        # TODO: give scores, handle ties, etc
+        xl = transliterate(args['query'].value.decode('utf-8'))
+        result = {'best_guess': xl}
+        print json.dumps(result)
+
+    elif len(sys.argv) > 1:
 		source = u' '.join(arg.decode('utf-8') for arg in sys.argv[1:])
 		print '%s: %s' % (source, transliterate(source))
+
