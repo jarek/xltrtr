@@ -4,8 +4,8 @@
 from __future__ import unicode_literals
 import cgi
 import os
-import simplejson as json
 import sys
+import simplejson as json
 
 # from http://hetland.org/coding/python/levenshtein.py
 def levenshtein(a,b):
@@ -275,8 +275,8 @@ def populate_data():
     pass
 
 def find_best_score(l):
-    # Takes a list containing lists composed as follows:
-    #   [score, text, (... possible further information)]
+    # Takes a list containing dicts composed as follows:
+    #   {score, output, ... possible further information}
     # and returns a list with only those items that have the highest score
     # of all items. If there's only one highest score, result is a list 
     # of one item; otherwise, all the highest-score items are in the list.
@@ -284,12 +284,12 @@ def find_best_score(l):
     best_score = 0
     best_scores_data = []
     for entry in l:
-        if entry[0] > best_score:
+        if entry['score'] > best_score:
             # if better than current best score, make it the best score
-            best_score = entry[0]
+            best_score = entry['score']
             best_scores_data = [entry]
-        elif best_score > 0 and entry[0] == best_score \
-            and not entry[1] == best_scores_data[-1][1]:
+        elif best_score > 0 and entry['score'] == best_score \
+            and not entry['output'] == best_scores_data[-1]['output']:
             # if tied for best score, add for later deciding
             # except if it's the same result, then no point noting it again
 
@@ -314,50 +314,29 @@ def transliterate(text, from_lang = False, to_lang = False):
     # As I understand it, 'final only' can also occur at end of syllable.
     # So smart syllabing? Might get complicated.
 
-    # `results` keeps more information, `scores` holds it in a format 
-    # more convenient for scoring and sorting
-    results = {}
-    scores = []
-
-    # For each language/substitution set, blindly try transliterating
+    # For each language/substitution set, first blindly try transliterating
     # input text both into and out of latin. Compute scores by evaluating
     # Levenshtein distance. Higher score == more different. 
     # If input text is already in Latin and we try transliterating into
-    # Latin, result will be the same, Lev.dist == 0, and we'll disregard it
-    # when evaluating the score. Ditto for e.g. transliterating Inuktitut 
-    # input into Inuktitut.
+    # Latin, result will be the same, and Lev.dist score == 0.
+    # Ditto for e.g. transliterating Inuktitut input into Inuktitut.
 
-    for lang in LANGS:
-        into_latin = text
-        from_latin = text
+    # Next, count matching language keys in the source string. 
+    # E.g. 'ch' might count for Russian and 'qa' for Inuktitut.
+    # Scores are weighted by length, as a match for 'shch' or 'kuu' 
+    # is much more indicative than a match for 'a'.
 
-        for non_latin,latin in LANGS[lang]['INTO_LIST']:
-            into_latin = into_latin.replace(non_latin, latin)
+    # Finally, results where not every character has been replaced receive 
+    # penalty points. For transliterating "iqaluit" from Latin script,
+        # ᐃᖃᓗᐃᑦ is an obviously better result than иqалуит, 
+    # since the Latin "q" isn't part of Russian Cyrillic script.
+    # Technically, this is done by checking how many of the characters in 
+    # the produced output are transliterable back. For the example, 
+    # all of ᐃᖃᓗᐃᑦ converts back into Latin, while the q in "иqалуит"
+    # would not be touched by a Russian to Latin transliteration.
 
-        for latin,non_latin in LANGS[lang]['FROM_LIST']:
-            from_latin = from_latin.replace(latin, non_latin)
-
-        lang_scores = {
-            'into': [levenshtein(into_latin, text), into_latin, lang],
-            'from': [levenshtein(from_latin, text), from_latin, lang]
-            }
-
-        results[lang] = lang_scores
-        scores = scores + lang_scores.values()
-
-    # Next, to find the 'correct' transliteration in the results table,
-    # simply find best-scoring results (ones with largest Lev.dist. from 
-    # input string) and assume they're the correct one. This mostly works.
-
-    # For situations where answers are tied on Lev.distance, count matching
-    # language keys in the source string. E.g. 'ch' might count for Russian
-    # and 'qa' for Inuktitut. Scores are weighted by length, as a match for
-    # 'shch' or 'kuu' is much more indicative than a match for 'a'.
     # Not foolproof, but again, mostly works, particularly for two 
     # very different scripts, as I have currently.
-
-    # TODO: look into using this secondary algorithm in connection with or
-    # or instead of the first one, since it seems a little more learned.
 
     # TODO: Some more ideas to do it better:
     # - Use a ready-made language detector, particularly for inconclusive 
@@ -365,38 +344,85 @@ def transliterate(text, from_lang = False, to_lang = False):
     #   in some database of languages' words, which might not work as well
     #   for single words.
 
-    best_scores_data = find_best_score(scores)
+    scores = []
 
-    if not len(best_scores_data) == 1:
-        # if there's a tie, rescore with a second attempt
-        # (described above)
+    def score(text, lang, direction):
+        # score transliteration in desired direction w.r.t. Latin script
+        # ('into' => "into Latin script", otherwise "from Latin script")
 
-        new_scores = []
+        transliterated = text
 
-        for best_score in best_scores_data:
-            score = 0
+        direction = direction.upper()
+        opposite_direction = 'FROM' if (direction == 'INTO') else 'INTO'
+        direction_list = direction + '_LIST'
+        opposite_direction_list = opposite_direction + '_LIST'
 
-            # look through both FROM and INTO collections for more
-            # universality since CPU cycles are cheap...
+        # first, transliterate, and check its Levenshein score
+        # - weigh by length of input
+        for find,replace in LANGS[lang][direction_list]:
+            transliterated = transliterated.replace(find, replace)
+        lev_score = levenshtein(transliterated, text) * len(text)
 
-            for clump in LANGS[best_score[2]]['FROM_LATIN']:
-                score = score + text.count(clump)*len(clump)
-            for clump in LANGS[best_score[2]]['INTO_LATIN']:
-                score = score + text.count(clump)*len(clump)
+        # give points for each character matched
+        # - add extra weight for longer clumps
+        clump_score = 0
+        for clump,ignore in LANGS[lang][direction_list]:
+            match = clump.lower()
+            clump_score += text.count(match) * len(match)
 
-            new_scores.append([score] + best_score[1:])
+        # see how much was NOT matched, and take away points
+        # - weight by length of output, as longer outputs will tend to have 
+        # otherwise higher scores
+        # - strip down reverse_test_string gradually as we find matches
+        # to avoid double or triple counting matches in combinations 
+        # like "kii" (would otherwise match for "i", "ki", and "kii") or "ya"
+        reverse_score = 0
+        reverse_test_string = transliterated
+        for clump,ignore in LANGS[lang][opposite_direction_list]:
+            reverse_score += reverse_test_string.count(clump) * len(clump)
+            reverse_test_string = reverse_test_string.replace(clump, '')
+        # compare number of matches against length of output string to see
+        # if we missed something
+        reverse_score = -1 * abs(len(transliterated) - reverse_score) \
+            * len(transliterated)
 
-        best_scores_data = find_best_score(new_scores)
+        return {'output': transliterated, 
+            'lev': lev_score, 'clump': clump_score, 'penalty': reverse_score}
 
-    # return either the best-scoring result or a message about a tie
-    if not len(best_scores_data) == 1:
+    for lang in LANGS:
+        # score transliteration from other script into Latin script
+        INTO = score(text, lang, 'into')
+
+        scores.append({
+            'score': (INTO['lev'] + INTO['clump'] + INTO['penalty']), 
+            'scores': {'lev': INTO['lev'], 'clump': INTO['clump'], 
+                'penalty': INTO['penalty']}, 
+            'lang': lang, 'dir': 'into', 'output': INTO['output']});
+
+        # score transliteration from Latin into other script
+        FROM = score(text, lang, 'from')
+
+        scores.append({
+            'score': (FROM['lev'] + FROM['clump'] + FROM['penalty']), 
+            'scores': {'lev': FROM['lev'], 'clump': FROM['clump'], 
+                'penalty': FROM['penalty']}, 
+            'lang': lang, 'dir': 'from', 'output': FROM['output']});
+
+    scores.sort(key = lambda x: x['score'], reverse = True)
+
+    return scores
+
+def format_text(data):
+    # return either the best-scoring result or a string message about a tie
+    data = find_best_score(data)
+    if not len(data) == 1:
         formatted = []
-        for best_score in best_scores_data:
-            formatted.append(best_score[1] + ' (score ' + str(best_score[0]) 
-                + ', ' + best_score[2].title() + ')')
+        for best_score in data:
+            formatted.append(best_score['output'] + \
+                ' (' + best_score['lang'].title() + ')')
         return 'tie between ' + ', '.join(formatted)
     else:
-        return best_scores_data[0][1]
+        return data[0]['output']
 
 #__init__
 # except this isn't a class...
@@ -417,13 +443,16 @@ if __name__ == '__main__':
         args = []
 
     if 'query' in args:
-        # print basic JSON output
-        # TODO: give scores, handle ties, etc
+        # print JSON output with all data
+        # (scores for all combinations, sorted descending)
         xl = transliterate(args['query'].value.decode('utf-8'))
-        result = {'best_guess': xl}
-        print json.dumps(result)
+        print json.dumps(xl)
 
     elif len(sys.argv) > 1:
         source = u' '.join(arg.decode('utf-8') for arg in sys.argv[1:])
-        print '%s: %s' % (source, transliterate(source))
+        print '%s: %s' % (source, format_text(transliterate(source)))
+
+    else:
+        print './xltrtr.py [string]'
+        print '\ttransliterate string into best-guess of either Inuktitut or Russian'
 

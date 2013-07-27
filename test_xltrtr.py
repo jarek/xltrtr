@@ -56,17 +56,18 @@ class known_values(unittest.TestCase):
         for source, to in self.basic_values:
             #print '%s = %s' % (source, to)
             result = xltrtr.transliterate(source)
-            self.assertEqual(to, result)
+            self.assertEqual(to, xltrtr.format_text(result))
     
     def test_sanity_case(self):
         """transliterate() should give consistent results for round-trip transliterations"""
 
         for source in self.sanity_values:
             intermediate = xltrtr.transliterate(source)
-            result = xltrtr.transliterate(intermediate)
+            result = xltrtr.transliterate(xltrtr.format_text(intermediate))
 
             #print '%s = %s = %s' % (source, intermediate, result)
-            self.assertEqual(source, result)
+            self.assertEqual(source, xltrtr.format_text(result))
 
 if __name__ == '__main__':
     unittest.main()
+
