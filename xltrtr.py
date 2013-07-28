@@ -431,28 +431,44 @@ populate_data()
 if __name__ == '__main__':
     # check if we're running as CGI
     # this uses RFC3875 section 4.1.4
-    if 'GATEWAY_INTERFACE' in os.environ:
+    isCGI = 'GATEWAY_INTERFACE' in os.environ
+
+    if isCGI:
         # cgi.FieldStorage() *really* doesn't like being called before
         # something is printed, at least in python 2.6.6 on my webhost.
         # So print the Content-Type header.
-        print 'Content-Type: application/json\n'
+        # Do no print newline so that the content-type can be changed
+        # by printing a second header later. This is used to send HTML
+        # from this same file.
+        print 'Content-Type: application/json'
+
         args = cgi.FieldStorage()
 
-    # if we aren't CGI, assume command-line behaviour
+        if 'query' in args and 'ajax' in args:
+            print '\n' # newline to signal end of header field
+
+            # print JSON output with all data
+            # (scores for all combinations, sorted descending)
+            xl = transliterate(args['query'].value.decode('utf-8'))
+            print json.dumps(xl)
+        else:
+            print 'Content-Type: text/html\n' # we'll be sending HTML instead
+
+            # TODO: if 'query' in args, compute transliteration and inject into
+            # printed HTML so it'll work on browsers with disabled js or xhr
+            f = open('frontend.html', 'r')
+            html = f.read()
+            print html
+
+     # if we aren't CGI, assume command-line behaviour
     else:
         args = []
 
-    if 'query' in args:
-        # print JSON output with all data
-        # (scores for all combinations, sorted descending)
-        xl = transliterate(args['query'].value.decode('utf-8'))
-        print json.dumps(xl)
+        if len(sys.argv) > 1:
+            source = u' '.join(arg.decode('utf-8') for arg in sys.argv[1:])
+            print '%s: %s' % (source, format_text(transliterate(source)))
 
-    elif len(sys.argv) > 1:
-        source = u' '.join(arg.decode('utf-8') for arg in sys.argv[1:])
-        print '%s: %s' % (source, format_text(transliterate(source)))
-
-    else:
-        print './xltrtr.py [string]'
-        print '\ttransliterate string into best-guess of either Inuktitut or Russian'
+        else:
+            print './xltrtr.py [string]'
+            print '\ttransliterate string into best-guess of either Inuktitut or Russian'
 
