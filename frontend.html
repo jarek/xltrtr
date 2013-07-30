@@ -35,12 +35,12 @@ function xhrJSON(url, callback) {
     xmlhttp.onload = function () {
         callback(JSON.parse(this.responseText));
     };
-	xmlhttp.open("GET",url);
-	xmlhttp.send();
+    xmlhttp.open("GET",url);
+    xmlhttp.send();
 }
 
 function el(id) {
-	return document.getElementById(id);
+    return document.getElementById(id);
 }
 
 function transliterationRequested() {
@@ -54,7 +54,7 @@ function transliterationRequested() {
             var url = form.action + '?query=' + text + '&ajax=1';
             result = xhrJSON(url, showResult);
         }
-	}
+    }
 
     oldText = text;
 
@@ -68,7 +68,7 @@ function showResult(result) {
         result = result[0]['output'];
     }
 
-	el('translation').innerHTML = result;
+    el('translation').innerHTML = result;
 
     el('query').focus();
 }
