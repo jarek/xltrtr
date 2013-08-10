@@ -499,10 +499,16 @@ if __name__ == '__main__':
                         xl_result['result'] = xl_result['output']
                         results.append(template.format(**xl_result))
 
-                inject = ' or '.join(results)
-                inject_after = '<section id="translation">'
-                inject_loc = html.find(inject_after) + len(inject_after)
-                html = html[:inject_loc] + inject + html[inject_loc:]
+                def inject_after(text, to_inject, inject_after):
+                    inject_loc = html.find(inject_after) + len(inject_after)
+                    return text[:inject_loc] + to_inject + text[inject_loc:]
+
+                results = ' or '.join(results)
+                after = '<section id="translation">'
+                html = inject_after(html, results, after)
+
+                after = '<input type="text" name="query" id="query" value="'
+                html = inject_after(html, query, after)
 
             print html.encode('utf8')
 
