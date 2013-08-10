@@ -29,6 +29,11 @@ def levenshtein(a,b):
     return current[n]
 
 
+ISO_CODES = {
+    'russian': 'ru',
+    'inuktitut': 'iu'
+}
+
 LANGS = {
     'russian': {
         'INTO_LATIN': {
@@ -397,7 +402,8 @@ def transliterate(text, from_lang = False, to_lang = False):
             'score': (INTO['lev'] + INTO['clump'] + INTO['penalty']), 
             'scores': {'lev': INTO['lev'], 'clump': INTO['clump'], 
                 'penalty': INTO['penalty']}, 
-            'lang': lang, 'dir': 'into', 'output': INTO['output']});
+            'lang': lang, 'iso639-1': ISO_CODES[lang], 'dir': 'into',
+            'output': INTO['output']});
 
         # score transliteration from Latin into other script
         FROM = score(text, lang, 'from')
@@ -406,7 +412,8 @@ def transliterate(text, from_lang = False, to_lang = False):
             'score': (FROM['lev'] + FROM['clump'] + FROM['penalty']), 
             'scores': {'lev': FROM['lev'], 'clump': FROM['clump'], 
                 'penalty': FROM['penalty']}, 
-            'lang': lang, 'dir': 'from', 'output': FROM['output']});
+            'lang': lang, 'iso639-1': ISO_CODES[lang], 'dir': 'from',
+            'output': FROM['output']});
 
     scores.sort(key = lambda x: x['score'], reverse = True)
 
@@ -449,8 +456,11 @@ if __name__ == '__main__':
 
             # print JSON output with all data
             # (scores for all combinations, sorted descending)
-            xl = transliterate(args['query'].value.decode('utf-8'))
-            print json.dumps(xl)
+            input 
+            query = args['query'].value.decode('utf-8')
+            xl = transliterate(query)
+            result = {'input': query, 'output': xl}
+            print json.dumps(result)
         else:
             print 'Content-Type: text/html\n' # we'll be sending HTML instead
 

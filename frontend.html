@@ -9,8 +9,39 @@ body {
     font-family: sans-serif;
     font-weight: 200;
 }
-#translation {
+
+fieldset {
+    border: 0;
+    background: #fcfcfc;
+    border-radius: 3px;
+    margin-bottom: 1em;
+
+    /* tame legend */
+    position: relative;
+    padding-top: 1.33em;
+}
+legend {
+    position: absolute;
+    top: 0.5em;
+}
+
+#translation section {
+    display: inline-block;
+    margin-top: 1em;
+    vertical-align: middle;
+    border: 1px solid #eee;
+    padding: 5px;
+}
+#translation .result {
     font-size: 200%;
+}
+#translation .lang {
+    font-size: 80%;
+}
+#translation ul.result-links {
+    list-style-type: none;
+    padding-left: 0;
+    line-height: 133%;
 }
 </style>
 
@@ -24,7 +55,7 @@ body {
 
 <fieldset>
 <legend>output</legend>
-<p><span id="translation">&nbsp;</span>
+<section id="translation"></section>
 </fieldset>
 
 <script type="text/javascript">
@@ -50,6 +81,7 @@ function transliterationRequested() {
         if (text === '') {
             showResult('&nbsp;');
         } else {
+            currentRequest = text;
             var form = el('transliteration-form');
             var url = form.action + '?query=' + text + '&ajax=1';
             result = xhrJSON(url, showResult);
@@ -62,18 +94,47 @@ function transliterationRequested() {
 }
 
 function showResult(result) {
-    if (typeof result[0] === 'object') {
-        // show the first result for now
-        // TODO: handle ties, show scores detail, etc
-        result = result[0]['output'];
+    if (result.input !== currentRequest) {
+        // ignore results that arrive out of order
+        return;
     }
 
-    el('translation').innerHTML = result;
+    var output = result.output;
+
+    var topScore = output[0].score;
+    var results = []
+    for (var i = 0, l = output.length; i < l; i++) {
+        if (output[i].score === topScore) {
+            results.push(formatLang(output[i]));
+        }
+    }
+
+    el('translation').innerHTML = results.join(' or ');
 
     el('query').focus();
 }
 
-var oldText = "";
+function formatLang(result) {
+    var template = '<section class="translation">' +
+        '<p class="result">{result}</p> ' + 
+        '<p class="lang">{lang}</p>' +
+        '<ul class="result-links">' + 
+        '<li>wiktionary: ' + 
+        '<a href="http://en.wiktionary.org/wiki/{result}">en</a> · ' + 
+        '<a href="http://{iso}.wiktionary.org/wiki/{result}">{iso}</a>' + 
+        '<li>wikipedia: ' +
+        '<a href="http://en.wikipedia.org/wiki/{result}">en</a> · ' + 
+        '<a href="http://{iso}.wikipedia.org/wiki/{result}">{iso}</a>' + 
+        '</ul>' + 
+        '</section>';
+
+    return template.replace(/{result}/g, result.output)
+        .replace(/{lang}/g, result.lang)
+        .replace(/{iso}/g, result['iso639-1']);
+}
+
+var oldText = '';
+var currentRequest = '';
 el('submit-button').onclick = transliterationRequested;
 el('query').onkeyup = transliterationRequested;
 el('query').focus();
