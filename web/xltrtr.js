@@ -38,6 +38,12 @@ function showResult(result) {
         return;
     }
 
+    newState = {}; // TODO: store state?
+    newUrl = location.href.split('?')[0] + '?query=' + result.input;
+    newTitle = document.title + ' for ' + result.input;
+    history.pushState(newState, newTitle, newUrl);
+    // TODO: handle popstate to handle back button correctly
+
     var output = result.output;
 
     var topScore = output[0].score;
