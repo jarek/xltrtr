@@ -7,6 +7,8 @@ import os
 import sys
 import simplejson as json
 
+sys.stderr = sys.stdout
+
 # from http://hetland.org/coding/python/levenshtein.py
 def levenshtein(a,b):
     "Calculates the Levenshtein distance between a and b."
@@ -431,6 +433,13 @@ def format_text(data):
     else:
         return data[0]['output']
 
+def find_template(html, template_name):
+    template_tag = '<script type="text/template" id="' + template_name + '">'
+    template_close_tag = '</script>'
+    index1 = html.find(template_tag)
+    index2 = html.find(template_close_tag, index1)
+    return html[index1+len(template_tag):index2]
+
 #__init__
 # except this isn't a class...
 populate_data()
@@ -456,7 +465,6 @@ if __name__ == '__main__':
 
             # print JSON output with all data
             # (scores for all combinations, sorted descending)
-            input 
             query = args['query'].value.decode('utf-8')
             xl = transliterate(query)
             result = {'input': query, 'output': xl}
@@ -464,10 +472,8 @@ if __name__ == '__main__':
         else:
             print 'Content-Type: text/html\n' # we'll be sending HTML instead
 
-            # TODO: if 'query' in args, compute transliteration and inject into
-            # printed HTML so it'll work on browsers with disabled js or xhr
             f = open('web/frontend.html', 'r')
-            html = f.read()
+            html = f.read().decode('utf8')
 
             f = open('web/xltrtr.js', 'r')
             js = f.read()
@@ -475,9 +481,32 @@ if __name__ == '__main__':
             f = open('web/style.css', 'r')
             css = f.read()
 
-            print html.format(js = js, css = css)
+            html = html.format(js = js, css = css)
 
-     # if we aren't CGI, assume command-line behaviour
+            # if 'query' in args, compute transliteration and inject into
+            # printed HTML, so it'll work on browsers with disabled js or xhr
+            if 'query' in args:
+                query = args['query'].value.decode('utf-8')
+                xl = transliterate(query)
+
+                template = find_template(html, 'translationtemplate')
+                results = []
+
+                top_score = xl[0]['score']
+                for xl_result in xl:
+                    if xl_result['score'] == top_score:
+                        xl_result['iso'] = xl_result['iso639-1']
+                        xl_result['result'] = xl_result['output']
+                        results.append(template.format(**xl_result))
+
+                inject = ' or '.join(results)
+                inject_after = '<section id="translation">'
+                inject_loc = html.find(inject_after) + len(inject_after)
+                html = html[:inject_loc] + inject + html[inject_loc:]
+
+            print html.encode('utf8')
+
+    # if we aren't CGI, assume command-line behaviour
     else:
         args = []
 
