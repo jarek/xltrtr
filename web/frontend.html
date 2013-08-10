@@ -18,6 +18,21 @@
 <section id="translation"></section>
 </fieldset>
 
+<script type="text/template" id="translationtemplate">
+    <section class="translation">
+    <p class="result">{{result}}</p>
+    <p class="lang">{{lang}}</p>
+        <ul class="result-links">
+        <li>wiktionary: 
+        <a href="http://en.wiktionary.org/wiki/{{result}}">en</a> · 
+        <a href="http://{{iso}}.wiktionary.org/wiki/{{result}}">{{iso}}</a>
+        <li>wikipedia: 
+        <a href="http://en.wikipedia.org/wiki/{{result}}">en</a> · 
+        <a href="http://{{iso}}.wikipedia.org/wiki/{{result}}">{{iso}}</a>
+        </ul>
+    </section>
+</script>
+
 <script type="text/javascript">
 {js}
 </script>

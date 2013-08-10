@@ -54,18 +54,10 @@ function showResult(result) {
 }
 
 function formatLang(result) {
-    var template = '<section class="translation">' +
-        '<p class="result">{result}</p> ' + 
-        '<p class="lang">{lang}</p>' +
-        '<ul class="result-links">' + 
-        '<li>wiktionary: ' + 
-        '<a href="http://en.wiktionary.org/wiki/{result}">en</a> · ' + 
-        '<a href="http://{iso}.wiktionary.org/wiki/{result}">{iso}</a>' + 
-        '<li>wikipedia: ' +
-        '<a href="http://en.wikipedia.org/wiki/{result}">en</a> · ' + 
-        '<a href="http://{iso}.wikipedia.org/wiki/{result}">{iso}</a>' + 
-        '</ul>' + 
-        '</section>';
+    var template = document.getElementById('translationtemplate');
+    if (!template) return '';
+
+    template = template.innerHTML;
 
     return template.replace(/{result}/g, result.output)
         .replace(/{lang}/g, result.lang)
