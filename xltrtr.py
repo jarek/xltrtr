@@ -466,9 +466,16 @@ if __name__ == '__main__':
 
             # TODO: if 'query' in args, compute transliteration and inject into
             # printed HTML so it'll work on browsers with disabled js or xhr
-            f = open('frontend.html', 'r')
+            f = open('web/frontend.html', 'r')
             html = f.read()
-            print html
+
+            f = open('web/xltrtr.js', 'r')
+            js = f.read()
+
+            f = open('web/style.css', 'r')
+            css = f.read()
+
+            print html.format(js = js, css = css)
 
      # if we aren't CGI, assume command-line behaviour
     else:

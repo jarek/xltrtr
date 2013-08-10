@@ -1,64 +1,3 @@
-<!doctype html>
-<meta charset="utf-8" />
-<title>xltrtr</title>
-<style type="text/css" media="screen,projection">
-body {
-    background: #fff;
-    color: #333;
-
-    font-family: sans-serif;
-    font-weight: 200;
-}
-
-fieldset {
-    border: 0;
-    background: #fcfcfc;
-    border-radius: 3px;
-    margin-bottom: 1em;
-
-    /* tame legend */
-    position: relative;
-    padding-top: 1.33em;
-}
-legend {
-    position: absolute;
-    top: 0.5em;
-}
-
-#translation section {
-    display: inline-block;
-    margin-top: 1em;
-    vertical-align: middle;
-    border: 1px solid #eee;
-    padding: 5px;
-}
-#translation .result {
-    font-size: 200%;
-}
-#translation .lang {
-    font-size: 80%;
-}
-#translation ul.result-links {
-    list-style-type: none;
-    padding-left: 0;
-    line-height: 133%;
-}
-</style>
-
-<form id="transliteration-form" action="xltrtr.py">
-<fieldset>
-<legend>input</legend>
-<p><input type="text" name="query" id="query">
-<input id="submit-button" type="submit" value="submit">
-</fieldset>
-</form>
-
-<fieldset>
-<legend>output</legend>
-<section id="translation"></section>
-</fieldset>
-
-<script type="text/javascript">
 /*notmuchhere*/
 
 function xhrJSON(url, callback) {
@@ -138,5 +77,4 @@ var currentRequest = '';
 el('submit-button').onclick = transliterationRequested;
 el('query').onkeyup = transliterationRequested;
 el('query').focus();
-</script>
 
