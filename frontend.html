@@ -50,6 +50,7 @@ function transliterationRequested() {
         if (text === '') {
             showResult('&nbsp;');
         } else {
+            currentRequest = text;
             var form = el('transliteration-form');
             var url = form.action + '?query=' + text + '&ajax=1';
             result = xhrJSON(url, showResult);
@@ -62,18 +63,26 @@ function transliterationRequested() {
 }
 
 function showResult(result) {
-    if (typeof result[0] === 'object') {
-        // show the first result for now
-        // TODO: handle ties, show scores detail, etc
-        result = result[0]['output'];
+    if (result.input !== currentRequest) {
+        // ignore results that arrive out of order
+        return;
     }
 
-	el('translation').innerHTML = result;
+    var output = result.output;
+
+    if (typeof output[0] === 'object') {
+        // show the first result for now
+        // TODO: handle ties, show scores detail, etc
+        output = output[0]['output'];
+    }
+
+	el('translation').innerHTML = output;
 
     el('query').focus();
 }
 
-var oldText = "";
+var oldText = '';
+var currentRequest = '';
 el('submit-button').onclick = transliterationRequested;
 el('query').onkeyup = transliterationRequested;
 el('query').focus();
