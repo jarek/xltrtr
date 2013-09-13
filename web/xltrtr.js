@@ -70,6 +70,8 @@ function formatLang(result) {
         .replace(/{iso}/g, result['iso639-1']);
 }
 
+// TODO: detect XMLHttpRequest and document.getElementById and fail gracefully
+
 var oldText = '';
 var currentRequest = '';
 el('submit-button').onclick = transliterationRequested;
