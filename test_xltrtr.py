@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 import unittest
 import xltrtr
 
+# TODO: the algorithm fails for "kvas", "ananas"
+
 class known_values(unittest.TestCase):
     basic_values = (
         ('ᓄᓇᕗᑦ', 'nunavut'),
