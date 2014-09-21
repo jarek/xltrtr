@@ -20,6 +20,9 @@ legend {
     position: absolute;
     top: 0.5em;
 }
+#examples {
+    margin-left: 3em;
+}
 
 #translation section {
     display: inline-block;
