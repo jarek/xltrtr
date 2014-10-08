@@ -23,6 +23,13 @@ legend {
 #examples {
     margin-left: 3em;
 }
+@media(max-width: 35em) {
+    /* drop examples to their own line on narrow screens */
+    #examples {
+        display: block;
+        margin-left: inherit;
+    }
+}
 
 #translation section {
     display: inline-block;
